@@ -98,6 +98,26 @@ export const mintStreamMoment = async (
   }
 };
 
+export const donateToContract = async (amount: string): Promise<string | null> => {
+  try {
+    if (!window.ethereum) throw new Error('MetaMask not installed');
+    
+    const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = web3Provider.getSigner();
+    const userContract = contract.connect(signer);
+    
+    const tx = await userContract.donate({
+      value: ethers.utils.parseEther(amount)
+    });
+    
+    await tx.wait();
+    return tx.hash;
+  } catch (error) {
+    console.error('Error donating:', error);
+    return null;
+  }
+};
+
 export const getContractBalance = async (): Promise<string> => {
   try {
     const balance = await contract.getBalance();
