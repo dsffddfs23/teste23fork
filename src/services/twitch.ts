@@ -25,7 +25,7 @@ const connectWithRetry = async (client: Client): Promise<boolean> => {
       errorMessage = JSON.stringify(error);
     }
     
-    console.error('Detailed Twitch connection error:', error);
+    console.error('Detailed Twitch connection error:', errorMessage);
     
     // Enhanced error handling with specific error types
     if (errorMessage.includes('ENOTFOUND') || errorMessage.toLowerCase().includes('address could not be found')) {
@@ -54,21 +54,16 @@ const connectWithRetry = async (client: Client): Promise<boolean> => {
       return connectWithRetry(client);
     }
     
-    throw new Error(
-      `Failed to connect after ${MAX_RETRIES} attempts.\n` +
-      'Please verify:\n' +
-      '1. Your internet connection is stable\n' +
-      '2. Twitch services are accessible from your network\n' +
-      '3. No firewall is blocking the connection\n' +
-      `Original error: ${errorMessage}`
-    );
+    console.error('Failed to connect to Twitch after all retries');
+    return false;
   }
 };
 
 export const initTwitchClient = async (channel: string): Promise<boolean> => {
   try {
     if (!channel || typeof channel !== 'string' || channel.trim() === '') {
-      throw new Error('Invalid channel name provided');
+      console.error('Invalid channel name provided');
+      return false;
     }
 
     // Disconnect existing client with timeout
@@ -96,9 +91,9 @@ export const initTwitchClient = async (channel: string): Promise<boolean> => {
       connection: {
         reconnect: true,
         secure: true,
-        timeout: 30000, // Increased timeout
-        maxReconnectAttempts: 5,
-        maxReconnectInverval: 10000
+        timeout: 60000, // Increased timeout to 60 seconds
+        maxReconnectAttempts: 10, // Increased retry attempts
+        maxReconnectInverval: 30000 // Increased reconnect interval
       },
       channels: [normalizedChannel]
     });
@@ -123,7 +118,6 @@ export const initTwitchClient = async (channel: string): Promise<boolean> => {
 
     twitchClient.on('disconnected', (reason) => {
       console.log('Disconnected from Twitch chat:', reason);
-      // Attempt to reconnect on unexpected disconnections
       if (reason !== 'Requested' && connectionRetries < MAX_RETRIES) {
         setTimeout(() => {
           console.log('Attempting to reconnect...');
@@ -132,7 +126,11 @@ export const initTwitchClient = async (channel: string): Promise<boolean> => {
       }
     });
 
-    await connectWithRetry(twitchClient);
+    const connected = await connectWithRetry(twitchClient);
+    if (!connected) {
+      console.error('Failed to establish Twitch connection');
+      return false;
+    }
     return true;
   } catch (error) {
     let errorMessage = 'Unknown error during Twitch client initialization';
@@ -162,14 +160,13 @@ export const changeChannel = async (newChannel: string): Promise<boolean> => {
   try {
     console.log(`Attempting to change channel to: ${normalizedNewChannel}`);
     if (twitchClient) {
-      // Set a timeout for the channel change operation
       const changeChannelPromise = async () => {
         await twitchClient!.part(currentChannel);
         await twitchClient!.join(normalizedNewChannel);
       };
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Channel change timeout')), 10000)
+        setTimeout(() => reject(new Error('Channel change timeout')), 30000) // Increased timeout
       );
       
       await Promise.race([changeChannelPromise(), timeoutPromise]);
@@ -193,7 +190,6 @@ export const changeChannel = async (newChannel: string): Promise<boolean> => {
     
     console.error('Error changing channel:', errorMessage);
     
-    // If timeout occurred, try to reinitialize the client
     if (errorMessage.includes('timeout')) {
       console.log('Attempting to reinitialize client after timeout...');
       return initTwitchClient(normalizedNewChannel);

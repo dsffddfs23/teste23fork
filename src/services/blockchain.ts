@@ -16,8 +16,20 @@ export const initBlockchain = async (): Promise<boolean> => {
       chainId: 10143,
       name: 'monad-testnet'
     });
+
+    // Verify provider connection
+    await provider.getNetwork();
+    
     wallet = new ethers.Wallet(privateKey, provider);
     contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, wallet);
+    
+    // Verify contract exists
+    const code = await provider.getCode(CONTRACT_ADDRESS);
+    if (code === '0x') {
+      console.error('Contract not found at specified address');
+      return false;
+    }
+    
     nonce = await provider.getTransactionCount(wallet.address);
     return true;
   } catch (error) {
@@ -120,7 +132,16 @@ export const donateToContract = async (amount: string): Promise<string | null> =
 
 export const getContractBalance = async (): Promise<string> => {
   try {
-    const balance = await contract.getBalance();
+    // First check if contract is properly initialized
+    if (!contract || !provider) {
+      await initBlockchain();
+      if (!contract || !provider) {
+        throw new Error('Contract initialization failed');
+      }
+    }
+
+    // Get the actual contract balance from the network
+    const balance = await provider.getBalance(CONTRACT_ADDRESS);
     return ethers.utils.formatEther(balance);
   } catch (error) {
     console.error('Error checking balance:', error);
