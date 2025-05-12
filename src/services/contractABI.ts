@@ -36,6 +36,24 @@ const contractABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_metadata",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_streamer",
+        "type": "string"
+      }
+    ],
+    "name": "mintStreamMoment",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "stateMutability": "nonpayable",
     "type": "constructor"
@@ -52,7 +70,7 @@ const contractABI = [
       {
         "indexed": false,
         "internalType": "string",
-        "name": "encryptedMessage",
+        "name": "message",
         "type": "string"
       },
       {
@@ -105,40 +123,6 @@ const contractABI = [
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "comments",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "username",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "encryptedMessage",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "txHash",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "getBalance",
     "outputs": [
@@ -146,41 +130,6 @@ const contractABI = [
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getComments",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "string",
-            "name": "username",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "encryptedMessage",
-            "type": "string"
-          },
-          {
-            "internalType": "uint256",
-            "name": "timestamp",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "txHash",
-            "type": "bytes32"
-          }
-        ],
-        "internalType": "struct TwitchComments.Comment[]",
-        "name": "",
-        "type": "tuple[]"
       }
     ],
     "stateMutability": "view",
