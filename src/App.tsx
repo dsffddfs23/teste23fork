@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { TwitchMessage, Comment } from './types';
 import TwitchPlayer from './components/TwitchPlayer';
@@ -6,12 +6,16 @@ import CommentsList from './components/CommentsList';
 import WalletConnect from './components/WalletConnect';
 import DonationPopup from './components/DonationPopup';
 import ChannelForm from './components/ChannelForm';
+import ReactionBar, { FloatingReaction } from './components/ReactionBar';
+import StreamMomentButton from './components/StreamMomentButton';
 import { MINIMUM_GAS_FUND, DEFAULT_TWITCH_CHANNEL } from './config/constants';
 
 import { 
   initBlockchain, 
   getContractBalance, 
   postCommentToBlockchain,
+  postReactionToBlockchain,
+  mintStreamMoment,
   connectWallet,
   donateToContract
 } from './services/blockchain';
@@ -30,6 +34,8 @@ function App() {
   const [balance, setBalance] = useState('0');
   const [showDonationPopup, setShowDonationPopup] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [reactions, setReactions] = useState<string[]>([]);
+  const streamRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -127,6 +133,43 @@ function App() {
     }
   }, [fetchBalance]);
 
+  const handleReaction = useCallback(async (reaction: string) => {
+    if (!account) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    setReactions(prev => [...prev, reaction]);
+    setTimeout(() => setReactions(prev => prev.filter(r => r !== reaction)), 2000);
+
+    try {
+      const txHash = await postReactionToBlockchain(reaction, channel);
+      if (txHash) {
+        toast.success('Reaction posted successfully');
+      }
+    } catch (error) {
+      console.error('Error posting reaction:', error);
+      toast.error('Failed to post reaction');
+    }
+  }, [account, channel]);
+
+  const handleCaptureMoment = useCallback(async (imageData: string) => {
+    if (!account) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      const txHash = await mintStreamMoment(imageData, channel);
+      if (txHash) {
+        toast.success('Stream moment minted successfully');
+      }
+    } catch (error) {
+      console.error('Error minting stream moment:', error);
+      toast.error('Failed to mint stream moment');
+    }
+  }, [account, channel]);
+
   return (
     <div className="min-h-screen bg-slate-900">
       <Toaster position="top-right" />
@@ -170,7 +213,13 @@ function App() {
               onChannelChange={handleChannelChange}
               defaultChannel={DEFAULT_TWITCH_CHANNEL}
             />
-            <TwitchPlayer channel={channel} />
+            <div ref={streamRef} className="relative">
+              <TwitchPlayer channel={channel} />
+              <StreamMomentButton
+                onCapture={handleCaptureMoment}
+                streamRef={streamRef}
+              />
+            </div>
             
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
               <div className="text-sm text-slate-400 space-y-2">
@@ -192,6 +241,11 @@ function App() {
         pendingTransactions={pendingTransactions}
         confirmedTransactions={confirmedTransactions}
       />
+      
+      <ReactionBar onReaction={handleReaction} currentChannel={channel} />
+      {reactions.map((reaction, index) => (
+        <FloatingReaction key={`${reaction}-${index}`} reaction={reaction} />
+      ))}
       
       {showDonationPopup && (
         <DonationPopup
