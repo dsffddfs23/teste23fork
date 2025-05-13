@@ -132,14 +132,13 @@ export const donateToContract = async (amount: string): Promise<string | null> =
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
     await web3Provider.send("eth_requestAccounts", []);
     const signer = web3Provider.getSigner();
+    const userContract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
     
-    // Send transaction directly to contract
-    const tx = await signer.sendTransaction({
-      to: CONTRACT_ADDRESS,
+    const tx = await userContract.donate({
       value: ethers.utils.parseEther(amount),
+      gasLimit: 100000,
       maxFeePerGas: ethers.utils.parseUnits('50', 'gwei'),
-      maxPriorityFeePerGas: ethers.utils.parseUnits('2', 'gwei'),
-      gasLimit: 100000
+      maxPriorityFeePerGas: ethers.utils.parseUnits('2', 'gwei')
     });
     
     const receipt = await tx.wait();
