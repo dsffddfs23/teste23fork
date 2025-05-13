@@ -17,13 +17,11 @@ export const initBlockchain = async (): Promise<boolean> => {
       name: 'monad-testnet'
     });
 
-    // Verify provider connection
     await provider.getNetwork();
     
     wallet = new ethers.Wallet(privateKey, provider);
     contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, wallet);
     
-    // Verify contract exists
     const code = await provider.getCode(CONTRACT_ADDRESS);
     if (code === '0x') {
       console.error('Contract not found at specified address');
@@ -113,24 +111,30 @@ export const mintStreamMoment = async (
 export const donateToContract = async (amount: string): Promise<string | null> => {
   try {
     if (!window.ethereum) throw new Error('MetaMask not installed');
+
+    const chainId = '0x279F'; // Monad Testnet chainId
     
-    await window.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: '0x279F' }], // Monad Testnet chainId
-    }).catch(async (switchError) => {
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId }],
+      });
+    } catch (switchError: any) {
+      // This error code indicates that the chain has not been added to MetaMask
       if (switchError.code === 4902) {
         await addMonadNetwork();
       } else {
         throw switchError;
       }
-    });
+    }
     
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+    await web3Provider.send("eth_requestAccounts", []);
     const signer = web3Provider.getSigner();
-    const userContract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
     
-    const tx = await userContract.donate({
-      value: ethers.utils.parseEther(amount)
+    const tx = await signer.sendTransaction({
+      to: CONTRACT_ADDRESS,
+      value: ethers.utils.parseEther(amount),
     });
     
     await tx.wait();
@@ -143,7 +147,6 @@ export const donateToContract = async (amount: string): Promise<string | null> =
 
 export const getContractBalance = async (): Promise<string> => {
   try {
-    // First check if contract is properly initialized
     if (!contract || !provider) {
       await initBlockchain();
       if (!contract || !provider) {
@@ -151,7 +154,6 @@ export const getContractBalance = async (): Promise<string> => {
       }
     }
 
-    // Get the actual contract balance from the network
     const balance = await provider.getBalance(CONTRACT_ADDRESS);
     return ethers.utils.formatEther(balance);
   } catch (error) {
@@ -171,19 +173,27 @@ export const connectWallet = async (): Promise<string | null> => {
   }
 
   try {
-    await addMonadNetwork();
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
     const accounts = await web3Provider.send('eth_requestAccounts', []);
     
-    // Switch to Monad network after connecting
-    await window.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: '0x279F' }],
-    }).catch(async (switchError) => {
+    const chainId = '0x279F'; // Monad Testnet chainId
+    
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId }],
+      });
+    } catch (switchError: any) {
       if (switchError.code === 4902) {
         await addMonadNetwork();
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId }],
+        });
+      } else {
+        throw switchError;
       }
-    });
+    }
     
     return accounts[0];
   } catch (error) {
