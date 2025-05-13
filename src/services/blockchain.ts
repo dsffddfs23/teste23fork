@@ -45,16 +45,12 @@ export const postCommentToBlockchain = async (
     const currentNonce = await provider.getTransactionCount(wallet.address);
     nonce = Math.max(nonce, currentNonce);
 
-    const gasPrice = await provider.getGasPrice();
-    
     const tx = await contract.addComment(username, message, {
-      nonce: nonce++,
-      gasLimit: ethers.BigNumber.from('200000'),
-      gasPrice: gasPrice.mul(2)
+      nonce: nonce++
     });
     
-    await tx.wait();
-    return tx.hash;
+    const receipt = await tx.wait();
+    return receipt.transactionHash;
   } catch (error) {
     console.error('Error posting comment:', error);
     return null;
@@ -69,16 +65,12 @@ export const postReactionToBlockchain = async (
     const currentNonce = await provider.getTransactionCount(wallet.address);
     nonce = Math.max(nonce, currentNonce);
 
-    const gasPrice = await provider.getGasPrice();
-    
     const tx = await contract.addReaction(reaction, streamer, {
-      nonce: nonce++,
-      gasLimit: ethers.BigNumber.from('200000'),
-      gasPrice: gasPrice.mul(2)
+      nonce: nonce++
     });
     
-    await tx.wait();
-    return tx.hash;
+    const receipt = await tx.wait();
+    return receipt.transactionHash;
   } catch (error) {
     console.error('Error posting reaction:', error);
     return null;
@@ -93,16 +85,12 @@ export const mintStreamMoment = async (
     const currentNonce = await provider.getTransactionCount(wallet.address);
     nonce = Math.max(nonce, currentNonce);
 
-    const gasPrice = await provider.getGasPrice();
-    
     const tx = await contract.mintStreamMoment(metadata, streamer, {
-      nonce: nonce++,
-      gasLimit: ethers.BigNumber.from('300000'),
-      gasPrice: gasPrice.mul(2)
+      nonce: nonce++
     });
     
-    await tx.wait();
-    return tx.hash;
+    const receipt = await tx.wait();
+    return receipt.transactionHash;
   } catch (error) {
     console.error('Error minting stream moment:', error);
     return null;
@@ -135,23 +123,20 @@ export const donateToContract = async (amount: string): Promise<string | null> =
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
     await web3Provider.send("eth_requestAccounts", []);
     const signer = web3Provider.getSigner();
-    const userContract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
     
-    // Estimate gas for the donation
-    const gasEstimate = await userContract.estimateGas.donate({
-      value: ethers.utils.parseEther(amount)
-    });
-
-    // Add 20% buffer to gas estimate
-    const gasLimit = gasEstimate.mul(120).div(100);
-
-    const tx = await userContract.donate({
-      value: ethers.utils.parseEther(amount),
-      gasLimit
+    // Get the current gas price and estimate gas
+    const gasPrice = await web3Provider.getGasPrice();
+    const value = ethers.utils.parseEther(amount);
+    
+    // Send transaction directly to contract address
+    const tx = await signer.sendTransaction({
+      to: CONTRACT_ADDRESS,
+      value,
+      gasPrice: gasPrice.mul(2), // Double gas price for faster confirmation
     });
     
-    await tx.wait();
-    return tx.hash;
+    const receipt = await tx.wait();
+    return receipt.transactionHash;
   } catch (error) {
     console.error('Error donating:', error);
     return null;
@@ -160,13 +145,6 @@ export const donateToContract = async (amount: string): Promise<string | null> =
 
 export const getContractBalance = async (): Promise<string> => {
   try {
-    if (!contract || !provider) {
-      await initBlockchain();
-      if (!contract || !provider) {
-        throw new Error('Contract initialization failed');
-      }
-    }
-
     const balance = await provider.getBalance(CONTRACT_ADDRESS);
     return ethers.utils.formatEther(balance);
   } catch (error) {
