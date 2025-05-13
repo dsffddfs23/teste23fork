@@ -47,7 +47,9 @@ export const postCommentToBlockchain = async (
 
     const tx = await contract.addComment(username, message, {
       nonce: nonce++,
-      gasLimit: 200000
+      gasLimit: 200000,
+      maxFeePerGas: ethers.utils.parseUnits('50', 'gwei'),
+      maxPriorityFeePerGas: ethers.utils.parseUnits('2', 'gwei')
     });
     
     const receipt = await tx.wait();
@@ -68,7 +70,9 @@ export const postReactionToBlockchain = async (
 
     const tx = await contract.addReaction(reaction, streamer, {
       nonce: nonce++,
-      gasLimit: 200000
+      gasLimit: 200000,
+      maxFeePerGas: ethers.utils.parseUnits('50', 'gwei'),
+      maxPriorityFeePerGas: ethers.utils.parseUnits('2', 'gwei')
     });
     
     const receipt = await tx.wait();
@@ -89,7 +93,9 @@ export const mintStreamMoment = async (
 
     const tx = await contract.mintStreamMoment(metadata, streamer, {
       nonce: nonce++,
-      gasLimit: 300000
+      gasLimit: 300000,
+      maxFeePerGas: ethers.utils.parseUnits('50', 'gwei'),
+      maxPriorityFeePerGas: ethers.utils.parseUnits('2', 'gwei')
     });
     
     const receipt = await tx.wait();
@@ -126,11 +132,13 @@ export const donateToContract = async (amount: string): Promise<string | null> =
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
     await web3Provider.send("eth_requestAccounts", []);
     const signer = web3Provider.getSigner();
-
+    
     // Send transaction directly to contract
     const tx = await signer.sendTransaction({
       to: CONTRACT_ADDRESS,
       value: ethers.utils.parseEther(amount),
+      maxFeePerGas: ethers.utils.parseUnits('50', 'gwei'),
+      maxPriorityFeePerGas: ethers.utils.parseUnits('2', 'gwei'),
       gasLimit: 100000
     });
     
