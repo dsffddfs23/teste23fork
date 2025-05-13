@@ -1,9 +1,10 @@
 import { ethers } from 'ethers';
 import contractABI from './contractABI';
-import { EXPLORER_URL, CONTRACT_ADDRESS } from '../config/constants';
+import { EXPLORER_URL } from '../config/constants';
 
 const rpcUrl = import.meta.env.VITE_MONAD_TESTNET_RPC as string;
 const privateKey = import.meta.env.VITE_GAS_FUND_PRIVATE_KEY as string;
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS as string;
 
 let provider: ethers.providers.JsonRpcProvider;
 let wallet: ethers.Wallet;
