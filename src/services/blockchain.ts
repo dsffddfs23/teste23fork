@@ -120,9 +120,12 @@ export const donateToContract = async (amount: string): Promise<string | null> =
         params: [{ chainId }],
       });
     } catch (switchError: any) {
-      // This error code indicates that the chain has not been added to MetaMask
       if (switchError.code === 4902) {
         await addMonadNetwork();
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId }],
+        });
       } else {
         throw switchError;
       }
@@ -131,10 +134,19 @@ export const donateToContract = async (amount: string): Promise<string | null> =
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
     await web3Provider.send("eth_requestAccounts", []);
     const signer = web3Provider.getSigner();
+    const userContract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
     
-    const tx = await signer.sendTransaction({
-      to: CONTRACT_ADDRESS,
+    // Estimate gas for the donation
+    const gasEstimate = await userContract.estimateGas.donate({
+      value: ethers.utils.parseEther(amount)
+    });
+
+    // Add 20% buffer to gas estimate
+    const gasLimit = gasEstimate.mul(120).div(100);
+
+    const tx = await userContract.donate({
       value: ethers.utils.parseEther(amount),
+      gasLimit
     });
     
     await tx.wait();
