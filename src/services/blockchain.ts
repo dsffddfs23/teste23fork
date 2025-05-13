@@ -114,9 +114,20 @@ export const donateToContract = async (amount: string): Promise<string | null> =
   try {
     if (!window.ethereum) throw new Error('MetaMask not installed');
     
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: '0x279F' }], // Monad Testnet chainId
+    }).catch(async (switchError) => {
+      if (switchError.code === 4902) {
+        await addMonadNetwork();
+      } else {
+        throw switchError;
+      }
+    });
+    
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = web3Provider.getSigner();
-    const userContract = contract.connect(signer);
+    const userContract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
     
     const tx = await userContract.donate({
       value: ethers.utils.parseEther(amount)
@@ -154,18 +165,29 @@ export const getTxUrl = (txHash: string): string => {
 };
 
 export const connectWallet = async (): Promise<string | null> => {
-  if (window.ethereum) {
-    try {
-      const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-      const accounts = await web3Provider.send('eth_requestAccounts', []);
-      await addMonadNetwork();
-      return accounts[0];
-    } catch (error) {
-      console.error('Error connecting wallet:', error);
-      return null;
-    }
-  } else {
+  if (!window.ethereum) {
     console.error('MetaMask not installed');
+    return null;
+  }
+
+  try {
+    await addMonadNetwork();
+    const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+    const accounts = await web3Provider.send('eth_requestAccounts', []);
+    
+    // Switch to Monad network after connecting
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: '0x279F' }],
+    }).catch(async (switchError) => {
+      if (switchError.code === 4902) {
+        await addMonadNetwork();
+      }
+    });
+    
+    return accounts[0];
+  } catch (error) {
+    console.error('Error connecting wallet:', error);
     return null;
   }
 };
