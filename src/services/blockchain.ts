@@ -46,7 +46,8 @@ export const postCommentToBlockchain = async (
     nonce = Math.max(nonce, currentNonce);
 
     const tx = await contract.addComment(username, message, {
-      nonce: nonce++
+      nonce: nonce++,
+      gasLimit: 200000
     });
     
     const receipt = await tx.wait();
@@ -66,7 +67,8 @@ export const postReactionToBlockchain = async (
     nonce = Math.max(nonce, currentNonce);
 
     const tx = await contract.addReaction(reaction, streamer, {
-      nonce: nonce++
+      nonce: nonce++,
+      gasLimit: 200000
     });
     
     const receipt = await tx.wait();
@@ -86,7 +88,8 @@ export const mintStreamMoment = async (
     nonce = Math.max(nonce, currentNonce);
 
     const tx = await contract.mintStreamMoment(metadata, streamer, {
-      nonce: nonce++
+      nonce: nonce++,
+      gasLimit: 300000
     });
     
     const receipt = await tx.wait();
@@ -123,16 +126,12 @@ export const donateToContract = async (amount: string): Promise<string | null> =
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
     await web3Provider.send("eth_requestAccounts", []);
     const signer = web3Provider.getSigner();
-    
-    // Get the current gas price and estimate gas
-    const gasPrice = await web3Provider.getGasPrice();
-    const value = ethers.utils.parseEther(amount);
-    
-    // Send transaction directly to contract address
+
+    // Send transaction directly to contract
     const tx = await signer.sendTransaction({
       to: CONTRACT_ADDRESS,
-      value,
-      gasPrice: gasPrice.mul(2), // Double gas price for faster confirmation
+      value: ethers.utils.parseEther(amount),
+      gasLimit: 100000
     });
     
     const receipt = await tx.wait();
