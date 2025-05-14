@@ -133,18 +133,18 @@ export const donateToContract = async (amount: string): Promise<string | null> =
     await web3Provider.send("eth_requestAccounts", []);
     const signer = web3Provider.getSigner();
     
-    // Create transaction object with proper gas parameters
-    const tx = {
-      to: CONTRACT_ADDRESS,
+    // Create contract instance with user's signer
+    const donationContract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
+    
+    // Call the donate function
+    const tx = await donationContract.donate({
       value: ethers.utils.parseEther(amount),
-      gasLimit: ethers.utils.hexlify(100000),
+      gasLimit: 100000,
       maxFeePerGas: ethers.utils.parseUnits('50', 'gwei'),
       maxPriorityFeePerGas: ethers.utils.parseUnits('2', 'gwei')
-    };
+    });
     
-    // Send transaction
-    const transaction = await signer.sendTransaction(tx);
-    const receipt = await transaction.wait();
+    const receipt = await tx.wait();
     return receipt.transactionHash;
   } catch (error) {
     console.error('Error donating:', error);
