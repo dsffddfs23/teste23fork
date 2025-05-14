@@ -110,7 +110,7 @@ export const donateToContract = async (amount: string): Promise<string | null> =
   try {
     if (!window.ethereum) throw new Error('MetaMask not installed');
 
-    const chainId = '0x279F'; // Monad Testnet chainId
+    const chainId = '0x27AF'; // Monad Testnet chainId (10143 in hex)
     
     try {
       await window.ethereum.request({
@@ -176,7 +176,7 @@ export const connectWallet = async (): Promise<string | null> => {
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
     const accounts = await web3Provider.send('eth_requestAccounts', []);
     
-    const chainId = '0x279F'; // Monad Testnet chainId
+    const chainId = '0x27AF'; // Monad Testnet chainId (10143 in hex)
     
     try {
       await window.ethereum.request({
@@ -209,7 +209,7 @@ const addMonadNetwork = async (): Promise<void> => {
     await window.ethereum.request({
       method: 'wallet_addEthereumChain',
       params: [{
-        chainId: '0x279F',
+        chainId: '0x27AF',
         chainName: 'Monad Testnet',
         nativeCurrency: {
           name: 'MON',
